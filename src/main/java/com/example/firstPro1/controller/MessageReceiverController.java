@@ -20,7 +20,7 @@ package com.example.firstPro1.controller;
 
 		
 
-		private static final Logger LOG = LoggerFactory.getLogger(MessageReceiverController1.class);
+		private static final Logger LOG = LoggerFactory.getLogger(MessageReceiverController.class);
 
 		// 必须要有Handler方法才不会出现404
 		// Handler方法就是用来处理各种请求的操作、入口
