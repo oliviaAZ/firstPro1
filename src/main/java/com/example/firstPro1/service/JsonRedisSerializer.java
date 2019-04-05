@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JsonRedisSerializer<T> extends Jackson2JsonRedisSerializer<T> {
 
-	private ObjectMapper objectMapper = new ObjectMapper();
+	private ObjectMapper objectMapper = new ObjectMapper(); 
 
 	@SuppressWarnings("unchecked")
 	public JsonRedisSerializer() {
