@@ -8,9 +8,13 @@ package com.example.firstPro1.controller;
 import com.example.firstPro1.domain.InMessage;
 import com.example.firstPro1.service.MessageService;
 import com.example.firstPro1.service.MessageTypeRegister;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+
+import com.example.firstPro1.controller.MessageReceiverController;
 import org.slf4j.Logger;
 	import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
 	import org.springframework.web.bind.annotation.PostMapping;
 	import org.springframework.web.bind.annotation.RequestBody;
@@ -24,8 +28,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 	@RequestMapping("/zxj/firstPro1/receiver") // 访问哪个路径的时候，被此控制器处理
 	public class MessageReceiverController {
 
+
+		// 自动从Spring的容器里面获取一个消息服务出来，用于处理转换后的消息。现在还未实现消息的处理。
+		// 能够自动根据接口和实现的关系，自动把合适类型的对象放进来。
 		@Autowired
 		private MessageService messageService;
+		@Autowired
+		@Qualifier("xmlMapper")
+		private XmlMapper xmlMapper;
 
 		private static final Logger LOG = LoggerFactory.getLogger(MessageReceiverController.class);
 
@@ -57,14 +67,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 		) {
 			// 把收到的请求消息、请求参数全部打印出来
 			// 使用日志记录器打印可以非常方便输出日期、时间和位置，并且可以根据日志级别灵活过滤需要的信息。
-			LOG.trace("\n收到请求参数\n"//
+			LOG.debug("\n收到请求参数\n"//
 					+ "    signature : {}\n"// 大括号是一个占位符，需要后面继续传入实际的参数
 					+ "    timestamp : {}\n"//
 					+ "    nonce : {}\n"//
 					+ "收到的请求内容\n{}\n"//
 					, signature, timestamp, nonce, xml);
 
-			
+//			if(xml.indexOf("<MsgType><![CDATA[event]]></MsgType>")>0) {
+//				// 事件
+//			}else if(xml.indexOf("<MsgType><![CDATA[location]]></MsgType>")>0) {
+//				// 位置
+//			}//......
+
 			// 截取XML字符串里面的消息类型
 			String type = xml.substring(xml.indexOf("<MsgType><![CDATA[") + 18);
 			type = type.substring(0, type.indexOf("]]></MsgType>"));
@@ -73,11 +88,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 			Class<? extends InMessage> cla = MessageTypeRegister.getClass(type);
 
 			// 使用JAXB的API完成消息转换
-			InMessage inMessage = JAXB.unmarshal(xml, cla);
+//			InMessage msg = JAXB.unmarshal(new StringReader(xml), cla);
 
-			// 后面就调用业务逻辑层负责处理消息
-			this.messageService.onMessage(inMessage);
-	
+			// 使用XmlMapper实现XML转换成Java对象
+			try {
+				InMessage inMessage = xmlMapper.readValue(xml, cla);
+
+				// 后面就调用业务逻辑层负责处理消息
+				this.messageService.onMessage(inMessage);
+			} catch (Exception e) {
+				LOG.error("处理公众号信息出现错误：{}", e.getMessage());
+				LOG.debug("处理公众号信息时出现的错误详情：", e);
+			}
+
 			return "success";
 		}
 	}
